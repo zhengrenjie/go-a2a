@@ -2,7 +2,19 @@ package protocol
 
 import "context"
 
-type A2AProtocol interface {
+const (
+	MethodSendTask                 A2AMethod = "tasks/send"
+	MethodGetTask                  A2AMethod = "tasks/get"
+	MethodCancelTask               A2AMethod = "tasks/cancel"
+	MethodSetTaskPushNotifications A2AMethod = "tasks/pushNotification/set"
+	MethodGetTaskPushNotifications A2AMethod = "tasks/pushNotification/get"
+	MethodSubscribeTask            A2AMethod = "tasks/sendSubscribe"
+	MethodResubscribeTask          A2AMethod = "tasks/resubscribe"
+)
+
+type A2AMethod string
+
+type IA2AProtocol interface {
 	AgentCard() AgentCard
 
 	SendTask(ctx context.Context, params *TaskSendParams) (*Task, error)

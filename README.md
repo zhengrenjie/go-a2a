@@ -34,7 +34,7 @@ func main() {
     // create a new server with default options
     srv := server.NewServer(yourHandler)
 
-    err := server.NewStandardA2AServerHost(":6789").Host(srv)
+    err := server.NewA2AHost(":6789").Host(srv)
     if err != nil {
         log.Fatal(err)
     }

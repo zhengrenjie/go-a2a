@@ -6,7 +6,7 @@ import (
 	"net/http"
 )
 
-func NewStandardA2AServerHost(addr string) *StandardA2AServerHost {
+func NewA2AHost(addr string) *StandardA2AServerHost {
 	return &StandardA2AServerHost{addr: addr}
 }
 
@@ -43,16 +43,17 @@ func (s *standardHander) ServeHTTP(resp http.ResponseWriter, req *http.Request) 
 	defer req.Body.Close()
 
 	body, err := io.ReadAll(req.Body)
+
+	// if body cannot read, return 400
 	if err != nil {
-		// TODO: handle error
+		resp.WriteHeader(http.StatusBadRequest)
+		return
 	}
 
-	ret := s.server.HandleMessage(req.Context(), json.RawMessage(body))
-	respBody, err := json.Marshal(ret)
-	if err != nil {
-		// TODO: handle error
-	}
+	// handle request
+	respBody := s.server.HandleMessage(req.Context(), json.RawMessage(body)).ToByte()
 
+	// write json-rpc response to http-response
 	resp.WriteHeader(http.StatusOK)
 	resp.Header().Set("Content-Type", "application/json")
 	resp.Write(respBody)

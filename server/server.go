@@ -121,9 +121,9 @@ func (s *A2AServer) HandleMessage(ctx context.Context, msg json.RawMessage) *pro
 
 func (s *A2AServer) response(id uint64, ret any) *protocol.JsonRpcResponse {
 	return &protocol.JsonRpcResponse{
-		JsonRpc: protocol.JsonRpcVersion,
-		ID:      id,
-		Result:  ret,
+		JsonRpcVersion: protocol.JsonRpcVersion,
+		ID:             id,
+		Result:         ret,
 	}
 }
 

@@ -1,3 +1,3 @@
 module github.com/zhengrenjie/go-a2a
 
-go 1.24.2
+go 1.21

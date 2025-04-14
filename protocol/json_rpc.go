@@ -12,24 +12,12 @@ type JsonRpcRequest struct {
 type JsonRpcResponse struct {
 	JsonRpc string `json:"jsonrpc"`
 	ID      uint64 `json:"id"`
-	Result  any    `json:"result"`
-	Error   any    `json:"error"`
+	Result  any    `json:"result,omitempty"`
+	Error   any    `json:"error,omitempty"`
 }
 
 type JsonRpcError struct {
 	Code    int    `json:"code"`
 	Message string `json:"message"`
 	Data    any    `json:"data,omitempty"`
-}
-
-func Error(id uint64, code int, message string, data any) *JsonRpcResponse {
-	return &JsonRpcResponse{
-		JsonRpc: JsonRpcVersion,
-		ID:      id,
-		Error: &JsonRpcError{
-			Code:    code,
-			Message: message,
-			Data:    data,
-		},
-	}
 }

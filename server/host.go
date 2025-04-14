@@ -6,18 +6,32 @@ import (
 	"net/http"
 )
 
+func NewStandardA2AServerHost(addr string) *StandardA2AServerHost {
+	return &StandardA2AServerHost{addr: addr}
+}
+
 type StandardA2AServerHost struct {
 	addr string
 }
 
 // Host implements IA2AServerHost.
 func (s *StandardA2AServerHost) Host(server *A2AServer) error {
-	srv := &http.Server{
-		Addr:    s.addr,
-		Handler: &standardHander{server: server},
-	}
+	http.HandleFunc("/.well-known/agent.json", func(resp http.ResponseWriter, req *http.Request) {
+		defer req.Body.Close()
 
-	return srv.ListenAndServe()
+		agentCard := server.AgentCard()
+		agentCardJson, err := json.Marshal(agentCard)
+		if err != nil {
+			// TODO: handle error
+		}
+
+		resp.WriteHeader(http.StatusOK)
+		resp.Header().Set("Content-Type", "application/json")
+		resp.Write(agentCardJson)
+	})
+
+	http.Handle("/", &standardHander{server: server})
+	return http.ListenAndServe(s.addr, nil)
 }
 
 type standardHander struct {

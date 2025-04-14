@@ -14,7 +14,13 @@ const (
 
 type A2AMethod string
 
+// IA2AProtocol defines the interface for the A2A protocol.
+// Either the client or the server must implement this interface.
 type IA2AProtocol interface {
+
+	// AgentCard returns the agent card of the protocol.
+	// Remote Agents that support A2A are required to publish an Agent Card in JSON format describing the agent’s capabilities/skills and authentication mechanism.
+	// Clients use the Agent Card information to identify the best agent that can perform a task and leverage A2A to communicate with that remote agent.
 	AgentCard() AgentCard
 
 	SendTask(ctx context.Context, params *TaskSendParams) (*Task, error)

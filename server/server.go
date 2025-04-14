@@ -3,6 +3,7 @@ package server
 import (
 	"context"
 	"encoding/json"
+	"errors"
 
 	"github.com/zhengrenjie/go-a2a/protocol"
 )
@@ -23,21 +24,25 @@ func (s *A2AServer) AgentCard() protocol.AgentCard {
 	return s.handler.AgentCard()
 }
 
-func (s *A2AServer) HandleMessage(ctx context.Context, msg json.RawMessage) protocol.JsonRpcResponse {
+func (s *A2AServer) HandleMessage(ctx context.Context, msg json.RawMessage) *protocol.JsonRpcResponse {
 	var base struct {
-		JsonRpc string             `json:"jsonrpc"`
+		Version string             `json:"jsonrpc"`
 		ID      uint64             `json:"id"`
 		Method  protocol.A2AMethod `json:"method"`
 		Params  json.RawMessage    `json:"params"`
 	}
 
+	// unmarshal raw message from request body to 'base'
 	err := json.Unmarshal(msg, &base)
 	if err != nil {
-		return *protocol.Error(0, protocol.ErrJSONParse, "Invalid JSON", nil)
+		return protocol.ErrJsonRpcParse.New().ToJsonRpc(0)
 	}
 
-	if base.JsonRpc != protocol.JsonRpcVersion {
-		return *protocol.Error(base.ID, protocol.ErrInvalidRequest, "Invalid JSON-RPC version", nil)
+	// check json rpc version
+	if base.Version != protocol.JsonRpcVersion {
+		return protocol.ErrInvalidVersion.New().
+			Args(base.Version, protocol.JsonRpcVersion).
+			ToJsonRpc(base.ID)
 	}
 
 	var params any
@@ -46,63 +51,89 @@ func (s *A2AServer) HandleMessage(ctx context.Context, msg json.RawMessage) prot
 		params = new(protocol.TaskSendParams)
 		err = json.Unmarshal(msg, params)
 		if err != nil {
-			return *protocol.Error(base.ID, protocol.ErrJSONParse, "Invalid JSON", nil)
+			return protocol.ErrJsonRpcParamsParse.New().ToJsonRpc(base.ID)
 		}
 
-		ret, _ := s.handler.SendTask(ctx, params.(*protocol.TaskSendParams))
+		ret, err := s.handler.SendTask(ctx, params.(*protocol.TaskSendParams))
+		if err != nil {
+			return s.handleError(base.ID, err)
+		}
 
-		// TODO: handle error
 		return s.response(base.ID, ret)
 	case protocol.MethodGetTask:
 		params = new(protocol.TaskSendParams)
 		err = json.Unmarshal(msg, params)
 		if err != nil {
-			return *protocol.Error(base.ID, protocol.ErrJSONParse, "Invalid JSON", nil)
+			return protocol.ErrJsonRpcParamsParse.New().ToJsonRpc(base.ID)
 		}
 
-		ret, _ := s.handler.GetTask(ctx, params.(*protocol.TaskSendParams))
+		ret, err := s.handler.GetTask(ctx, params.(*protocol.TaskSendParams))
+		if err != nil {
+			return s.handleError(base.ID, err)
+		}
 
-		// TODO: handle error
 		return s.response(base.ID, ret)
 	case protocol.MethodCancelTask:
 		params = new(protocol.TaskSendParams)
 		err = json.Unmarshal(msg, params)
 		if err != nil {
-			return *protocol.Error(base.ID, protocol.ErrJSONParse, "Invalid JSON", nil)
+			return protocol.ErrJsonRpcParamsParse.New().ToJsonRpc(base.ID)
 		}
 
-		ret, _ := s.handler.CancelTask(ctx, params.(*protocol.TaskSendParams))
-		// TODO: handle error
+		ret, err := s.handler.CancelTask(ctx, params.(*protocol.TaskSendParams))
+		if err != nil {
+			return s.handleError(base.ID, err)
+		}
+
 		return s.response(base.ID, ret)
 	case protocol.MethodSetTaskPushNotifications:
 		params = new(protocol.TaskPushNotificationConfig)
 		err = json.Unmarshal(msg, params)
 		if err != nil {
-			return *protocol.Error(base.ID, protocol.ErrJSONParse, "Invalid JSON", nil)
+			return protocol.ErrJsonRpcParamsParse.New().ToJsonRpc(base.ID)
 		}
 
-		ret, _ := s.handler.SetTaskPushNotifications(ctx, params.(*protocol.TaskPushNotificationConfig))
-		// TODO: handle error
+		ret, err := s.handler.SetTaskPushNotifications(ctx, params.(*protocol.TaskPushNotificationConfig))
+		if err != nil {
+			return s.handleError(base.ID, err)
+		}
+
 		return s.response(base.ID, ret)
 	case protocol.MethodGetTaskPushNotifications:
 		params = new(protocol.TaskPushNotificationConfig)
 		err = json.Unmarshal(msg, params)
 		if err != nil {
-			return *protocol.Error(base.ID, protocol.ErrJSONParse, "Invalid JSON", nil)
+			return protocol.ErrJsonRpcParamsParse.New().ToJsonRpc(base.ID)
 		}
 
-		ret, _ := s.handler.GetTaskPushNotifications(ctx, params.(*protocol.TaskPushNotificationConfig))
-		// TODO: handle error
+		ret, err := s.handler.GetTaskPushNotifications(ctx, params.(*protocol.TaskPushNotificationConfig))
+		if err != nil {
+			return s.handleError(base.ID, err)
+		}
+
 		return s.response(base.ID, ret)
 	}
 
-	return *protocol.Error(base.ID, protocol.ErrMethodNotFound, "Method not found", nil)
+	return protocol.ErrMethodNotFound.New().
+		Args(base.Method).
+		ToJsonRpc(base.ID)
 }
 
-func (s *A2AServer) response(id uint64, ret any) protocol.JsonRpcResponse {
-	return protocol.JsonRpcResponse{
+func (s *A2AServer) response(id uint64, ret any) *protocol.JsonRpcResponse {
+	return &protocol.JsonRpcResponse{
 		JsonRpc: protocol.JsonRpcVersion,
 		ID:      id,
 		Result:  ret,
 	}
+}
+
+func (s *A2AServer) handleError(id uint64, err error) *protocol.JsonRpcResponse {
+	var ret *protocol.Error
+	if errors.As(err, &ret) {
+		return ret.ToJsonRpc(id)
+	}
+
+	return protocol.ErrInternalError.New().
+		Args(err.Error()).
+		ToJsonRpc(id)
 }

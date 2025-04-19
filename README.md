@@ -18,12 +18,15 @@ go get github.com/zhengrenjie/go-a2a
 
 ## server implementation
 - [x] A2A Server implementation with standard http server
-- [ ] Support SSE for streaming responses
+- [x] Support SSE for streaming responses
 - [ ] More useful options for server configuration
 - [ ] Server side logging
 
 ## client implementation
-WIP
+- [x] A2A Client implementation with standard http client
+- [x] Support streaming requests and responses
+- [ ] More useful options for client configuration
+- [ ] Client side logging
 
 # Usage
 
@@ -34,7 +37,7 @@ func main() {
     // create a new server with default options
     srv := server.NewServer(yourHandler)
 
-    err := server.NewStandardA2AServerHost(":6789").Host(srv)
+    err := server.NewA2AHost(":6789").Host(srv)
     if err != nil {
         log.Fatal(err)
     }

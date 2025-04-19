@@ -20,110 +20,109 @@ type A2AServer struct {
 	handler protocol.IA2AProtocol
 }
 
+type StreamingType interface {
+	*protocol.TaskArtifactUpdateEvent | *protocol.TaskStatusUpdateEvent
+}
+
+type Streaming[T StreamingType] struct {
+	Data chan T
+}
+
 func (s *A2AServer) AgentCard() protocol.AgentCard {
 	return s.handler.AgentCard()
 }
 
-func (s *A2AServer) HandleMessage(ctx context.Context, msg json.RawMessage) *protocol.JsonRpcResponse {
-	var base struct {
-		Version string             `json:"jsonrpc"`
-		ID      uint64             `json:"id"`
-		Method  protocol.A2AMethod `json:"method"`
-		Params  json.RawMessage    `json:"params"`
-	}
-
-	// unmarshal raw message from request body to 'base'
-	err := json.Unmarshal(msg, &base)
-	if err != nil {
-		return protocol.ErrJsonRpcParse.New().ToJsonRpc(0)
-	}
-
-	// check json rpc version
-	if base.Version != protocol.JsonRpcVersion {
-		return protocol.ErrInvalidVersion.New().
-			Args(base.Version, protocol.JsonRpcVersion).
-			ToJsonRpc(base.ID)
-	}
+// HandleMessage handles the following no-streaming methods:
+//   - tasks/send
+//   - tasks/get
+//   - tasks/cancel
+//   - tasks/pushNotification/set
+//   - tasks/pushNotification/get
+func (s *A2AServer) HandleMessage(ctx context.Context, raw *JsonRpcRaw) *protocol.JsonRpcResponse {
 
 	var params any
-	switch base.Method {
+	switch raw.Method {
 	case protocol.MethodSendTask:
 		params = new(protocol.TaskSendParams)
-		err = json.Unmarshal(msg, params)
+		err := json.Unmarshal(raw.Params, params)
 		if err != nil {
-			return protocol.ErrJsonRpcParamsParse.New().ToJsonRpc(base.ID)
+			return protocol.ErrJsonRpcParamsParse.New().ToJsonRpc(raw.ID)
 		}
 
 		ret, err := s.handler.SendTask(ctx, params.(*protocol.TaskSendParams))
 		if err != nil {
-			return s.handleError(base.ID, err)
+			return s.handleError(raw.ID, err)
 		}
 
-		return s.response(base.ID, ret)
+		return s.response(raw.ID, ret)
 	case protocol.MethodGetTask:
 		params = new(protocol.TaskSendParams)
-		err = json.Unmarshal(msg, params)
+		err := json.Unmarshal(raw.Params, params)
 		if err != nil {
-			return protocol.ErrJsonRpcParamsParse.New().ToJsonRpc(base.ID)
+			return protocol.ErrJsonRpcParamsParse.New().ToJsonRpc(raw.ID)
 		}
 
 		ret, err := s.handler.GetTask(ctx, params.(*protocol.TaskSendParams))
 		if err != nil {
-			return s.handleError(base.ID, err)
+			return s.handleError(raw.ID, err)
 		}
 
-		return s.response(base.ID, ret)
+		return s.response(raw.ID, ret)
 	case protocol.MethodCancelTask:
 		params = new(protocol.TaskSendParams)
-		err = json.Unmarshal(msg, params)
+		err := json.Unmarshal(raw.Params, params)
 		if err != nil {
-			return protocol.ErrJsonRpcParamsParse.New().ToJsonRpc(base.ID)
+			return protocol.ErrJsonRpcParamsParse.New().ToJsonRpc(raw.ID)
 		}
 
 		ret, err := s.handler.CancelTask(ctx, params.(*protocol.TaskSendParams))
 		if err != nil {
-			return s.handleError(base.ID, err)
+			return s.handleError(raw.ID, err)
 		}
 
-		return s.response(base.ID, ret)
+		return s.response(raw.ID, ret)
 	case protocol.MethodSetTaskPushNotifications:
 		params = new(protocol.TaskPushNotificationConfig)
-		err = json.Unmarshal(msg, params)
+		err := json.Unmarshal(raw.Params, params)
 		if err != nil {
-			return protocol.ErrJsonRpcParamsParse.New().ToJsonRpc(base.ID)
+			return protocol.ErrJsonRpcParamsParse.New().ToJsonRpc(raw.ID)
 		}
 
 		ret, err := s.handler.SetTaskPushNotifications(ctx, params.(*protocol.TaskPushNotificationConfig))
 		if err != nil {
-			return s.handleError(base.ID, err)
+			return s.handleError(raw.ID, err)
 		}
 
-		return s.response(base.ID, ret)
+		return s.response(raw.ID, ret)
 	case protocol.MethodGetTaskPushNotifications:
 		params = new(protocol.TaskPushNotificationConfig)
-		err = json.Unmarshal(msg, params)
+		err := json.Unmarshal(raw.Params, params)
 		if err != nil {
-			return protocol.ErrJsonRpcParamsParse.New().ToJsonRpc(base.ID)
+			return protocol.ErrJsonRpcParamsParse.New().ToJsonRpc(raw.ID)
 		}
 
 		ret, err := s.handler.GetTaskPushNotifications(ctx, params.(*protocol.TaskPushNotificationConfig))
 		if err != nil {
-			return s.handleError(base.ID, err)
+			return s.handleError(raw.ID, err)
 		}
 
-		return s.response(base.ID, ret)
+		return s.response(raw.ID, ret)
 	}
 
 	return protocol.ErrMethodNotFound.New().
-		Args(base.Method).
-		ToJsonRpc(base.ID)
+		Args(raw.Method).
+		ToJsonRpc(raw.ID)
+}
+
+func (s *A2AServer) HandleStreaming(ctx context.Context, raw *JsonRpcRaw, streaming <-chan *protocol.JsonRpcResponse) {
+
 }
 
 func (s *A2AServer) response(id uint64, ret any) *protocol.JsonRpcResponse {
 	return &protocol.JsonRpcResponse{
-		JsonRpc: protocol.JsonRpcVersion,
-		ID:      id,
-		Result:  ret,
+		JsonRpcVersion: protocol.JsonRpcVersion,
+		ID:             id,
+		Result:         ret,
 	}
 }
 

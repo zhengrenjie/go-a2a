@@ -81,8 +81,8 @@ func (e *Error) Data(data any) *Error {
 
 func (e *Error) ToJsonRpc(id uint64) *JsonRpcResponse {
 	return &JsonRpcResponse{
-		JsonRpc: JsonRpcVersion,
-		ID:      id,
+		JsonRpcVersion: JsonRpcVersion,
+		ID:             id,
 		Error: &JsonRpcError{
 			Code:    e.code,
 			Message: e.message,

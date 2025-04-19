@@ -32,4 +32,8 @@ type IA2AProtocol interface {
 	SetTaskPushNotifications(ctx context.Context, params *TaskPushNotificationConfig) (*TaskPushNotificationConfig, error)
 
 	GetTaskPushNotifications(ctx context.Context, params *TaskPushNotificationConfig) (*TaskPushNotificationConfig, error)
+
+	SubscribeTask(ctx context.Context, params *TaskSendParams) (chan any, error)
+
+	ResubscribeTask(ctx context.Context, params *TaskSendParams) (chan any, error)
 }

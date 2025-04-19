@@ -154,8 +154,6 @@ func (s *standardHander) ServeHTTP(w http.ResponseWriter, req *http.Request) {
 				return
 			}
 		}
-
-		return
 	}
 
 	resp := s.server.HandleMessage(req.Context(), raw)

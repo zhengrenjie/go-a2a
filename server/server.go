@@ -8,24 +8,12 @@ import (
 	"github.com/zhengrenjie/go-a2a/protocol"
 )
 
-type IA2AServerHost interface {
-	Host(server *A2AServer) error
-}
-
 func NewA2AServer(p protocol.IA2AProtocol) *A2AServer {
 	return &A2AServer{handler: p}
 }
 
 type A2AServer struct {
 	handler protocol.IA2AProtocol
-}
-
-type StreamingType interface {
-	*protocol.TaskArtifactUpdateEvent | *protocol.TaskStatusUpdateEvent
-}
-
-type Streaming[T StreamingType] struct {
-	Data chan T
 }
 
 func (s *A2AServer) AgentCard() protocol.AgentCard {

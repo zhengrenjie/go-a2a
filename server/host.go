@@ -11,6 +11,11 @@ import (
 )
 
 type (
+	IA2AServerHost interface {
+		Host(server *A2AServer) error
+	}
+
+	// StandardA2AServerHost implements IA2AServerHost with net/http.
 	StandardA2AServerHost struct {
 		addr string
 	}
@@ -31,7 +36,8 @@ func (s *StandardA2AServerHost) Host(server *A2AServer) error {
 		agentCard := server.AgentCard()
 		agentCardJson, err := json.Marshal(agentCard)
 		if err != nil {
-			// TODO: handle error
+			resp.WriteHeader(http.StatusInternalServerError)
+			return
 		}
 
 		resp.WriteHeader(http.StatusOK)

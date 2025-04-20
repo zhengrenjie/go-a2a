@@ -21,12 +21,14 @@ go get github.com/zhengrenjie/go-a2a
 - [x] Support SSE for streaming responses
 - [ ] More useful options for server configuration
 - [ ] Server side logging
+- [ ] Unit tests
 
 ## client implementation
 - [x] A2A Client implementation with standard http client
 - [x] Support streaming requests and responses
 - [ ] More useful options for client configuration
 - [ ] Client side logging
+- [ ] Unit tests
 
 # Usage
 
